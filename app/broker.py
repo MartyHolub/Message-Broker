@@ -63,6 +63,9 @@ async def broker_endpoint(websocket: WebSocket) -> None:
     try:
         while True:
             frame = await websocket.receive()
+            if frame.get("type") == "websocket.disconnect":
+                break
+
             incoming_message = decode_incoming_message(frame.get("text"), frame.get("bytes"))
 
             action = incoming_message.get("action")
@@ -80,6 +83,10 @@ async def broker_endpoint(websocket: WebSocket) -> None:
 
                 await manager.set_format(websocket, fmt)
                 await manager.subscribe(websocket, topic)
+                await _send_to_websocket(
+                    websocket,
+                    {"action": "subscribed", "topic": topic},
+                )
 
                 async with async_session_factory() as session:
                     pending_messages = await _load_pending_messages(session, topic)
@@ -107,6 +114,14 @@ async def broker_endpoint(websocket: WebSocket) -> None:
                     await session.refresh(stored_message)
 
                 delivery = _build_delivery_message(stored_message)
+                await _send_to_websocket(
+                    websocket,
+                    {
+                        "action": "published",
+                        "topic": topic,
+                        "message_id": stored_message.id,
+                    },
+                )
                 subscribers = await manager.get_subscribers(topic)
                 for subscriber in subscribers:
                     try:
@@ -125,11 +140,19 @@ async def broker_endpoint(websocket: WebSocket) -> None:
                 async with async_session_factory() as session:
                     await _mark_message_delivered(session, message_id)
                     await session.commit()
+                await _send_to_websocket(
+                    websocket,
+                    {"action": "acked", "message_id": message_id},
+                )
 
             else:
                 await websocket.send_json({"action": "error", "message": "Unknown action"})
 
     except WebSocketDisconnect:
-        await manager.disconnect(websocket)
+        pass
+    except ValueError:
+        pass
     except RuntimeError:
+        pass
+    finally:
         await manager.disconnect(websocket)

@@ -60,6 +60,9 @@ async def subscriber_worker(
             {"action": "subscribe", "topic": topic, "format": message_format},
             message_format,
         )
+        subscribed_confirmation = await recv_message(ws)
+        if subscribed_confirmation.get("action") != "subscribed":
+            raise RuntimeError("Broker did not confirm subscription")
         ready_event.set()
         received = 0
         while received < expected_messages:
@@ -91,6 +94,9 @@ async def publisher_worker(
                 },
                 message_format,
             )
+            published_confirmation = await recv_message(ws)
+            if published_confirmation.get("action") != "published":
+                raise RuntimeError("Broker did not confirm publish")
 
 
 async def run_benchmark(

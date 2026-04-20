@@ -89,6 +89,9 @@ async def run_publisher(
                 },
                 message_format,
             )
+            confirmation = await recv_message(ws)
+            if confirmation.get("action") != "published":
+                raise RuntimeError("Broker did not confirm publish")
             if interval > 0:
                 await asyncio.sleep(interval)
 

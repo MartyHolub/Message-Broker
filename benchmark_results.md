@@ -16,15 +16,21 @@ python benchmark.py --publishers 5 --subscribers 5 --messages-per-publisher 1000
 
 ## Naměřené výsledky
 
+Reálně spuštěné měření v tomto sandboxu (kvůli časovému limitu běhu):
+
+```bash
+python benchmark.py --publishers 2 --subscribers 2 --messages-per-publisher 10
+```
+
 | Formát      | Čas [s] | Propustnost [msg/s] |
 |-------------|---------|---------------------|
-| JSON        | 40.81   | 6125.95             |
-| MessagePack | 34.56   | 7233.80             |
+| JSON        | 0.271   | 147.45              |
+| MessagePack | 0.185   | 216.49              |
 
 ## Zhodnocení JSON vs MessagePack
 
 MessagePack měl v tomto měření vyšší propustnost, protože přenáší kompaktnější binární data a snižuje režii serializace/deserializace textového JSON formátu.  
-Vysoká zátěž (mnoho zpráv a klientů) rozdíl zvýraznila, takže pro produkční provoz s důrazem na výkon se binární formát vyplatí.
+Skript je připraven i na plné zadání (5/5/10000), ale tento konkrétní report obsahuje čísla z kratšího validančního běhu v CI sandboxu.
 
 ## AI Report
 
